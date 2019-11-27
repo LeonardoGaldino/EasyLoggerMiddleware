@@ -102,7 +102,7 @@ func keepRetryingAfter(f func() (interface{}, error), after time.Duration) inter
 			break
 		}
 		time.Sleep(after)
-		v, err = redis.Dial("tcp", redisService.FullAddress())
+		v, err = f()
 	}
 	return v
 }
