@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration"
 	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration/namingservice"
 	nsserver "github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/namingservice"
 )
@@ -15,8 +16,8 @@ func main() {
 		fmt.Printf("Wrong number of arguments. Expected 1 (config file path), got %d", numArgs)
 		os.Exit(1)
 	}
-
-	configs := nsconfigs.LoadConfiguration(os.Args[1])
+	configs := &nsconfigs.Configuration{}
+	configuration.LoadConfiguration(os.Args[1], configs)
 
 	for _, config := range configs.Loggers {
 		fmt.Printf("%+v\n", config)
