@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration/namingservice"
+	nsserver "github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/namingservice"
 )
 
 func main() {
@@ -19,4 +21,9 @@ func main() {
 	for _, config := range configs.Loggers {
 		fmt.Printf("%+v\n", config)
 	}
+
+	server := nsserver.InitNamingService("localhost", 8080, configs)
+	server.Start(2)
+
+	time.Sleep(time.Hour)
 }
