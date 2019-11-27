@@ -12,7 +12,7 @@ import (
 type NamingService struct {
 	Host string
 	Port int
-	Data map[string]string
+	data map[string]string
 }
 
 func (service *NamingService) handle(conn *net.Conn) {
@@ -26,7 +26,7 @@ func (service *NamingService) handle(conn *net.Conn) {
 	message := string(buffer[:messageSize])
 	fmt.Println(message)
 
-	(*conn).Write([]byte(service.Data[message]))
+	(*conn).Write([]byte(service.data[message]))
 	(*conn).Close()
 }
 
@@ -62,6 +62,6 @@ func InitNamingService(host string, port int, configs *nsconfigs.Configuration) 
 	return &NamingService{
 		Host: host,
 		Port: port,
-		Data: data,
+		data: data,
 	}
 }
