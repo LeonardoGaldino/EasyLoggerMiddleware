@@ -5,7 +5,7 @@ import (
 	"io"
 	"net"
 
-	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration/namingservice"
+	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/namingservice"
 )
 
 // NamingService represents a namingService address and its data

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration"
-	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration/namingservice"
-	nsserver "github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/namingservice"
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
+	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/namingservice"
+	nsserver "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/namingservice"
 )
 
 func main() {

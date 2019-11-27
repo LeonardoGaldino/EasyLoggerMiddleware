@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration"
-	"github.com/LeonardoGaldino/EasyLoggerMiddleware/internal/configuration/easylogger"
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/easylogger"
 	"github.com/gomodule/redigo/redis"
 )
 
