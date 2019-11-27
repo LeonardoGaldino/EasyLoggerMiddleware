@@ -1,0 +1,10 @@
+{
+    "RedisService": {
+        "Host": "127.0.0.1",
+        "Port": 6379
+    },
+    "NamingService": {
+        "Host": "127.0.0.1",
+        "Port": 6380
+    }
+}
