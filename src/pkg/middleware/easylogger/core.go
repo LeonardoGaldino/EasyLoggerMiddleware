@@ -15,6 +15,7 @@ var (
 	configsPath                 string
 	isPackageSetup              bool
 	redisService, namingService *easylogger.Address
+	connPool                    *redis.Pool
 )
 
 // LogLevel represents the how serious a log is
@@ -48,6 +49,20 @@ func logger(conn *redis.Conn) {
 	}
 }
 
+func initConnPool() *redis.Pool {
+	return &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", redisService.FullAddress())
+			if err != nil {
+				return nil, err
+			}
+			return c, nil
+		},
+		MaxActive: 11,
+		Wait:      true,
+	}
+}
+
 // InitLogger initializes logger with configuration file
 func InitLogger(loggerConfigsPath string) error {
 	if isPackageSetup {
@@ -56,6 +71,7 @@ func InitLogger(loggerConfigsPath string) error {
 
 	// Adds two more CPUs that this middleware requires to run in max performance
 	runtime.GOMAXPROCS(runtime.NumCPU() + 2)
+
 	configsPath = loggerConfigsPath
 	configs := &easylogger.Configuration{}
 	err := configuration.LoadConfiguration(loggerConfigsPath, &configs)
@@ -65,12 +81,9 @@ func InitLogger(loggerConfigsPath string) error {
 
 	redisService = configs.RedisService
 	namingService = configs.NamingService
+	connPool = initConnPool()
 
-	conn, err := redis.Dial("tcp", redisService.FullAddress())
-	if err != nil {
-		return err
-	}
-
+	conn := connPool.Get()
 	res, err := redis.DoWithTimeout(conn, time.Second*2, "PING", "Hello, Redis!")
 	if err != nil {
 		return err
@@ -95,9 +108,8 @@ func keepRetryingAfter(f func() (interface{}, error), after time.Duration) inter
 }
 
 func log(message, destination, serviceID string, level LogLevel) {
-	conn := keepRetryingAfter(func() (interface{}, error) {
-		return redis.Dial("tcp", redisService.FullAddress())
-	}, time.Second*3).(redis.Conn)
+	conn := connPool.Get()
+	defer conn.Close()
 
 	now := time.Now().Unix()
 	serialized := fmt.Sprintf("%s:%d:%s:%s:%s", destination, now, level.String(), serviceID, message)
