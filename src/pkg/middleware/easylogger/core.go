@@ -20,6 +20,10 @@ var (
 // LogLevel represents the how serious a log is
 type LogLevel int
 
+func (l LogLevel) String() string {
+	return []string{"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"}[l]
+}
+
 const (
 	// DEBUG represents a debug log level
 	DEBUG LogLevel = iota
@@ -32,6 +36,17 @@ const (
 	// FATAL represents a fatal log level
 	FATAL
 )
+
+func logger(conn *redis.Conn) {
+	pubsub := &redis.PubSubConn{Conn: *conn}
+	pubsub.Subscribe("easylogger:logs")
+	for {
+		switch msg := pubsub.Receive().(type) {
+		case redis.Message:
+			fmt.Printf("Received: %s\n", string(msg.Data))
+		}
+	}
+}
 
 // InitLogger initializes logger with configuration file
 func InitLogger(loggerConfigsPath string) error {
@@ -62,13 +77,34 @@ func InitLogger(loggerConfigsPath string) error {
 	}
 
 	fmt.Printf("Redis server on, PING response: %+v\n", string(res.([]uint8)))
+	go logger(&conn)
 	isPackageSetup = true
 	return nil
+}
 
+func keepRetryingAfter(f func() (interface{}, error), after time.Duration) interface{} {
+	v, err := f()
+	for {
+		if err == nil {
+			break
+		}
+		time.Sleep(after)
+		v, err = redis.Dial("tcp", redisService.FullAddress())
+	}
+	return v
 }
 
 func log(message, destination, serviceID string, level LogLevel) {
-	fmt.Printf("%s to %s as %d from %s", message, destination, level, serviceID)
+	conn := keepRetryingAfter(func() (interface{}, error) {
+		return redis.Dial("tcp", redisService.FullAddress())
+	}, time.Second*3).(redis.Conn)
+
+	now := time.Now().Unix()
+	serialized := fmt.Sprintf("%s:%d:%s:%s:%s", destination, now, level.String(), serviceID, message)
+
+	keepRetryingAfter(func() (interface{}, error) {
+		return conn.Do("PUBLISH", "easylogger:logs", serialized)
+	}, time.Second*3)
 }
 
 // Log is the main function for logging
