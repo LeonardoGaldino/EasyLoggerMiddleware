@@ -18,7 +18,7 @@ type Configuration struct {
 }
 
 // LoadConfiguration loads Configuration struct from a configuration file
-func LoadConfiguration(path string) Configuration {
+func LoadConfiguration(path string) *Configuration {
 	file, _ := os.Open(path)
 	defer file.Close()
 
@@ -30,5 +30,5 @@ func LoadConfiguration(path string) Configuration {
 		panic(err)
 	}
 
-	return configuration
+	return &configuration
 }
