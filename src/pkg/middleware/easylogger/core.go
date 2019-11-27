@@ -67,15 +67,15 @@ func InitLogger(loggerConfigsPath string) error {
 
 }
 
-func log(message string, destination string, level LogLevel) {
-	fmt.Printf("%s to %s as %d", message, destination, level)
+func log(message, destination, serviceID string, level LogLevel) {
+	fmt.Printf("%s to %s as %d from %s", message, destination, level, serviceID)
 }
 
 // Log is the main function for logging
-func Log(message string, destination string, level LogLevel) error {
+func Log(message, destination, serviceID string, level LogLevel) error {
 	if !isPackageSetup {
 		return errors.New("InitLogger hasn't been called yet or an error occurred on last call. Make sure EasyLogger package is correctly setup by calling it")
 	}
-	go log(message, destination, level)
+	go log(message, destination, serviceID, level)
 	return nil
 }
