@@ -16,8 +16,12 @@ func main() {
 		fmt.Printf("Wrong number of arguments. Expected 1 (config file path), got %d", numArgs)
 		os.Exit(1)
 	}
+
 	configs := &nsconfigs.Configuration{}
-	configuration.LoadConfiguration(os.Args[1], configs)
+	err := configuration.LoadConfiguration(os.Args[1], configs)
+	if err != nil {
+		panic(err)
+	}
 
 	for _, config := range configs.Loggers {
 		fmt.Printf("%+v\n", config)

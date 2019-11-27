@@ -6,14 +6,15 @@ import (
 )
 
 // LoadConfiguration loads Configuration struct from a configuration file
-func LoadConfiguration(path string, dest interface{}) {
-	file, _ := os.Open(path)
+func LoadConfiguration(path string, dest interface{}) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
 
-	err := decoder.Decode(dest)
-	if err != nil {
-		panic(err)
-	}
+	err = decoder.Decode(dest)
+	return err
 }
