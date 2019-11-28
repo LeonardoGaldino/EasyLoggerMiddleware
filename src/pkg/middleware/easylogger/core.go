@@ -8,6 +8,7 @@ import (
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/easylogger"
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/utils"
 	nsAPI "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/pkg/middleware/namingservice"
 	"github.com/gomodule/redigo/redis"
 )
@@ -90,18 +91,6 @@ func InitLogger(loggerConfigsPath string) error {
 	return nil
 }
 
-func keepRetryingAfter(f func() (interface{}, error), after time.Duration) interface{} {
-	v, err := f()
-	for {
-		if err == nil {
-			break
-		}
-		time.Sleep(after)
-		v, err = f()
-	}
-	return v
-}
-
 func log(message, destination, serviceID string, level LogLevel) {
 	conn := connPool.Get()
 	defer conn.Close()
@@ -109,7 +98,7 @@ func log(message, destination, serviceID string, level LogLevel) {
 	now := time.Now().Unix()
 	serialized := fmt.Sprintf("%s:%d:%s:%s:%s", destination, now, level.String(), serviceID, message)
 
-	keepRetryingAfter(func() (interface{}, error) {
+	utils.KeepRetryingAfter(func() (interface{}, error) {
 		return conn.Do("PUBLISH", "easylogger:logs", serialized)
 	}, time.Second*3)
 }

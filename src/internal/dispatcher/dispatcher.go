@@ -3,6 +3,9 @@ package dispatcher
 import (
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/utils"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
 	nsAPI "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/pkg/middleware/namingservice"
@@ -25,12 +28,10 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 			data := string(msg.Data)
 			fmt.Printf("Received: %s\n", data)
 			fields := strings.Split(data, ":")
-			addr, err := namingService.Query(fields[0])
-			if err == nil {
-				fmt.Printf("%s\n", addr)
-			} else {
-				fmt.Printf("Error: %+v\n", err)
-			}
+			addr := utils.KeepRetryingAfter(func() (interface{}, error) {
+				return namingService.Query(fields[0])
+			}, time.Second)
+			fmt.Printf("%s\n", addr)
 			/*
 			 * TODO: demultiplex using the destination (fields[0]) and the address (addr)
 			 * and send the log content fields[1:] to log service
