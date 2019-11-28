@@ -15,29 +15,37 @@ type NamingService struct {
 	address *configuration.Address
 }
 
-// Query queries a serviceName for its address
-func (ns *NamingService) Query(serviceName string) (string, error) {
+func (ns *NamingService) requestor(req *nsMarshaller.RequestMessage) (*nsMarshaller.ResponseMessage, error) {
 	conn, err := net.Dial("tcp", ns.address.FullAddress())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	req := &nsMarshaller.RequestMessage{
-		Op:   nsMarshaller.QUERY,
-		Data: serviceName,
-	}
 	serializedReq := nsMarshaller.MarshallRequest(req)
 	err = network.WriteMessage(&conn, serializedReq)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	resBytes, err := network.ReadMessage(&conn)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	response := nsMarshaller.UnmarshallResponse(resBytes)
+	return response, nil
+}
+
+// Query queries a serviceName for its address
+func (ns *NamingService) Query(serviceName string) (string, error) {
+	req := &nsMarshaller.RequestMessage{
+		Op:   nsMarshaller.QUERY,
+		Data: serviceName,
+	}
+	response, err := ns.requestor(req)
+	if err != nil {
+		return "", err
+	}
 	if response.Res == nsMarshaller.OK {
 		return response.Data, nil
 	} else if response.Res == nsMarshaller.ERROR {
@@ -48,27 +56,14 @@ func (ns *NamingService) Query(serviceName string) (string, error) {
 
 // Register registers a service on the namingService
 func (ns *NamingService) Register(serviceName, host string, port int) error {
-	conn, err := net.Dial("tcp", ns.address.FullAddress())
-	if err != nil {
-		return err
-	}
-
 	req := &nsMarshaller.RequestMessage{
 		Op:   nsMarshaller.REGISTER,
 		Data: fmt.Sprintf("%s:%s:%d", serviceName, host, port),
 	}
-	serializedReq := nsMarshaller.MarshallRequest(req)
-	err = network.WriteMessage(&conn, serializedReq)
+	response, err := ns.requestor(req)
 	if err != nil {
 		return err
 	}
-
-	resBytes, err := network.ReadMessage(&conn)
-	if err != nil {
-		return err
-	}
-
-	response := nsMarshaller.UnmarshallResponse(resBytes)
 	if response.Res == nsMarshaller.OK {
 		return nil
 	}
@@ -77,27 +72,14 @@ func (ns *NamingService) Register(serviceName, host string, port int) error {
 
 // Unregister unregisters a service on the namingService
 func (ns *NamingService) Unregister(serviceName string) error {
-	conn, err := net.Dial("tcp", ns.address.FullAddress())
-	if err != nil {
-		return err
-	}
-
 	req := &nsMarshaller.RequestMessage{
 		Op:   nsMarshaller.REGISTER,
 		Data: serviceName,
 	}
-	serializedReq := nsMarshaller.MarshallRequest(req)
-	err = network.WriteMessage(&conn, serializedReq)
+	response, err := ns.requestor(req)
 	if err != nil {
 		return err
 	}
-
-	resBytes, err := network.ReadMessage(&conn)
-	if err != nil {
-		return err
-	}
-
-	response := nsMarshaller.UnmarshallResponse(resBytes)
 	if response.Res == nsMarshaller.OK {
 		return nil
 	}
