@@ -54,7 +54,11 @@ func getServiceAddress(serviceName string) (string, error) {
 	}
 
 	res := string(buffer[:read])
-	return res, nil
+	fields := strings.Split(res, "/")
+	if fields[0] == "OK" {
+		return fields[1], nil
+	}
+	return "", fmt.Errorf("Service %s not found on NamingService", serviceName)
 }
 
 func logger(conn *redis.Conn) {

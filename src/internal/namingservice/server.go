@@ -26,7 +26,13 @@ func (service *NamingService) handle(conn *net.Conn) {
 	message := string(buffer[:messageSize])
 	fmt.Println(message)
 
-	(*conn).Write([]byte(service.data[message]))
+	res := service.data[message]
+	if len(res) > 0 {
+		res = fmt.Sprintf("OK/%s", res)
+	} else {
+		res = fmt.Sprintf("FAIL/%s", res)
+	}
+	(*conn).Write([]byte(res))
 	(*conn).Close()
 }
 
