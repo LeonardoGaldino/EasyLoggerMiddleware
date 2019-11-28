@@ -3,7 +3,9 @@ package easylogger
 import (
 	"errors"
 	"fmt"
+	"net"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
@@ -38,13 +40,37 @@ const (
 	FATAL
 )
 
+func getServiceAddress(serviceName string) (string, error) {
+	conn, err := net.Dial("tcp", namingService.FullAddress())
+	if err != nil {
+		return "", err
+	}
+
+	conn.Write([]byte(serviceName))
+	buffer := make([]byte, 1024, 1024)
+	read, err := conn.Read(buffer)
+	if err != nil {
+		return "", err
+	}
+
+	res := string(buffer[:read])
+	return res, nil
+}
+
 func logger(conn *redis.Conn) {
 	pubsub := &redis.PubSubConn{Conn: *conn}
 	pubsub.Subscribe("easylogger:logs")
 	for {
 		switch msg := pubsub.Receive().(type) {
 		case redis.Message:
-			fmt.Printf("Received: %s\n", string(msg.Data))
+			data := string(msg.Data)
+			fmt.Printf("Received: %s\n", data)
+			addr, err := getServiceAddress(strings.Split(data, ":")[0])
+			if err == nil {
+				fmt.Printf("%s\n", addr)
+			} else {
+				fmt.Printf("Error: %+v\n", err)
+			}
 		}
 	}
 }
