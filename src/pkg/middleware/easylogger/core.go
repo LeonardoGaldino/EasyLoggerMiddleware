@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	configsPath                 string
-	isPackageSetup              bool
-	redisService, namingService *configuration.Address
-	namingServiceAPI            *nsAPI.NamingService
-	connPool                    *redis.Pool
+	configsPath                         string
+	isPackageSetup                      bool
+	redisServiceAddr, namingServiceAddr *configuration.Address
+	namingService                       *nsAPI.NamingService
+	connPool                            *redis.Pool
 )
 
 // LogLevel represents the how serious a log is
@@ -42,7 +42,7 @@ const (
 )
 
 func getServiceAddress(serviceName string) (string, error) {
-	return namingServiceAPI.Query(serviceName)
+	return namingService.Query(serviceName)
 }
 
 func logger(conn *redis.Conn) {
@@ -66,7 +66,7 @@ func logger(conn *redis.Conn) {
 func initConnPool() *redis.Pool {
 	return &redis.Pool{
 		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", redisService.FullAddress())
+			c, err := redis.Dial("tcp", redisServiceAddr.FullAddress())
 			if err != nil {
 				return nil, err
 			}
@@ -93,9 +93,9 @@ func InitLogger(loggerConfigsPath string) error {
 		return err
 	}
 
-	redisService = configs.RedisService
-	namingService = configs.NamingService
-	namingServiceAPI = nsAPI.InitNamingServiceFromAddr(namingService)
+	redisServiceAddr = configs.RedisService
+	namingServiceAddr = configs.NamingService
+	namingService = nsAPI.InitNamingServiceFromAddr(namingServiceAddr)
 	connPool = initConnPool()
 
 	conn := connPool.Get()
