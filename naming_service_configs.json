@@ -2,6 +2,6 @@
     "Loggers": [{
         "Name": "ElasticSearch",
         "Host": "127.0.0.1",
-        "Port": 5063
+        "Port": 9200
     }]
 }
