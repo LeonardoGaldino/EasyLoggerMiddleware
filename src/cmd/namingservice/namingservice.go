@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
+	"sync"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
 	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/namingservice"
@@ -37,5 +37,8 @@ func main() {
 	server := nsserver.InitNamingService(os.Args[2], port, configs)
 	server.Start(2)
 
-	time.Sleep(time.Hour)
+	// Stop main goroutine while other goroutines handle incoming requests
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	wg.Wait()
 }
