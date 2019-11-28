@@ -44,7 +44,6 @@ func (service *NamingService) demuxOperation(req *nsMarshaller.RequestMessage) *
 	case nsMarshaller.UNREGISTER:
 		service.Unregister(req.Data)
 	}
-	fmt.Printf("%+v\n", service.data)
 	return res
 }
 
