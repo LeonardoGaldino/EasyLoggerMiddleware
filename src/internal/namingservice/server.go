@@ -15,6 +15,21 @@ type NamingService struct {
 	data map[string]string
 }
 
+// Register registers a service under the NamingService data
+func (service *NamingService) Register(name, address string, port int) {
+	service.data[name] = fmt.Sprintf("%s:%d", address, port)
+}
+
+// Unregister removes a service of the NamingService data
+func (service *NamingService) Unregister(name string) {
+	delete(service.data, name)
+}
+
+// Query gets the address of the service running with a given name
+func (service *NamingService) Query(name string) string {
+	return service.data[name]
+}
+
 func (service *NamingService) handle(conn *net.Conn) {
 	var res string
 	buffer, err := network.ReadMessage(conn)
@@ -25,7 +40,7 @@ func (service *NamingService) handle(conn *net.Conn) {
 	} else {
 		message := string(buffer)
 		fmt.Printf("%s\n", message)
-		res = service.data[message]
+		res = service.Query(message)
 		if len(res) > 0 {
 			res = fmt.Sprintf("OK/%s", res)
 		} else {
