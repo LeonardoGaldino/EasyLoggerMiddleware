@@ -3,15 +3,13 @@ package easylogger
 import (
 	"errors"
 	"fmt"
-	"net"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/easylogger"
-	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network"
-	nsMarshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network/marshaller/namingservice"
+	nsAPI "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/pkg/middleware/namingservice"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -19,6 +17,7 @@ var (
 	configsPath                 string
 	isPackageSetup              bool
 	redisService, namingService *configuration.Address
+	namingServiceAPI            *nsAPI.NamingService
 	connPool                    *redis.Pool
 )
 
@@ -43,33 +42,7 @@ const (
 )
 
 func getServiceAddress(serviceName string) (string, error) {
-	conn, err := net.Dial("tcp", namingService.FullAddress())
-	if err != nil {
-		return "", err
-	}
-
-	req := &nsMarshaller.RequestMessage{
-		Op:   nsMarshaller.QUERY,
-		Data: serviceName,
-	}
-	serializedReq := nsMarshaller.MarshallRequest(req)
-	err = network.WriteMessage(&conn, serializedReq)
-	if err != nil {
-		return "", err
-	}
-
-	resBytes, err := network.ReadMessage(&conn)
-	if err != nil {
-		return "", err
-	}
-
-	response := nsMarshaller.UnmarshallResponse(resBytes)
-	if response.Res == nsMarshaller.OK {
-		return response.Data, nil
-	} else if response.Res == nsMarshaller.ERROR {
-		return "", errors.New("Error on NamingService server")
-	}
-	return "", fmt.Errorf("Service %s not found on NamingService", serviceName)
+	return namingServiceAPI.Query(serviceName)
 }
 
 func logger(conn *redis.Conn) {
@@ -122,6 +95,7 @@ func InitLogger(loggerConfigsPath string) error {
 
 	redisService = configs.RedisService
 	namingService = configs.NamingService
+	namingServiceAPI = nsAPI.InitNamingServiceFromAddr(namingService)
 	connPool = initConnPool()
 
 	conn := connPool.Get()
