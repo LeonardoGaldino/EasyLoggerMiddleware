@@ -61,7 +61,7 @@ func (service *NamingService) Start(maxConcurrency int) {
 func InitNamingService(host string, port int, configs *nsconfigs.Configuration) *NamingService {
 	data := make(map[string]string)
 	for _, config := range configs.Loggers {
-		data[config.Name] = fmt.Sprintf("%s:%d", config.Host, config.Port)
+		data[config.Name] = config.Address.FullAddress()
 	}
 
 	return &NamingService{

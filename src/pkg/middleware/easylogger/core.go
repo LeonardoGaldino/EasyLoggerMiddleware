@@ -17,7 +17,7 @@ import (
 var (
 	configsPath                 string
 	isPackageSetup              bool
-	redisService, namingService *easylogger.Address
+	redisService, namingService *configuration.Address
 	connPool                    *redis.Pool
 )
 

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
@@ -11,10 +10,15 @@ import (
 	nsserver "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/namingservice"
 )
 
+var (
+	expectedArgs       = []string{"ConfigFilePath"}
+	numCommandLineArgs = len(expectedArgs)
+)
+
 func main() {
 	numArgs := len(os.Args) - 1
-	if numArgs != 3 {
-		fmt.Printf("Wrong number of arguments. Expected 3 (ConfigFilePath, Host, Port), got %d", numArgs)
+	if numArgs != numCommandLineArgs {
+		fmt.Printf("Wrong number of arguments. Expected 1 (%v) but got %d\n", expectedArgs, numArgs)
 		os.Exit(1)
 	}
 
@@ -24,17 +28,11 @@ func main() {
 		panic(err)
 	}
 
-	port64, err := strconv.ParseInt(os.Args[3], 10, 32)
-	if err != nil {
-		panic(err)
-	}
-	port := int(port64)
-
 	for _, config := range configs.Loggers {
-		fmt.Printf("%+v\n", config)
+		fmt.Printf("%s: %+v\n", config.Name, config.Address)
 	}
 
-	server := nsserver.InitNamingService(os.Args[2], port, configs)
+	server := nsserver.InitNamingService(configs.SelfAddress.Host, configs.SelfAddress.Port, configs)
 	server.Start(2)
 
 	// Stop main goroutine while other goroutines handle incoming requests
