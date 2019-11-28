@@ -11,6 +11,7 @@ import (
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/easylogger"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network"
+	nsMarshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network/marshaller/namingservice"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -46,18 +47,27 @@ func getServiceAddress(serviceName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = network.WriteMessage(&conn, []byte(serviceName))
+
+	req := &nsMarshaller.RequestMessage{
+		Op:   nsMarshaller.QUERY,
+		Data: serviceName,
+	}
+	serializedReq := nsMarshaller.MarshallRequest(req)
+	err = network.WriteMessage(&conn, serializedReq)
 	if err != nil {
 		return "", err
 	}
+
 	resBytes, err := network.ReadMessage(&conn)
 	if err != nil {
 		return "", err
 	}
-	res := string(resBytes)
-	fields := strings.Split(res, "/")
-	if fields[0] == "OK" {
-		return fields[1], nil
+
+	response := nsMarshaller.UnmarshallResponse(resBytes)
+	if response.Res == nsMarshaller.OK {
+		return response.Data, nil
+	} else if response.Res == nsMarshaller.ERROR {
+		return "", errors.New("Error on NamingService server")
 	}
 	return "", fmt.Errorf("Service %s not found on NamingService", serviceName)
 }

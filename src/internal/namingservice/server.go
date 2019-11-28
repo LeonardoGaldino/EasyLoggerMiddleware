@@ -3,9 +3,11 @@ package namingservice
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/namingservice"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network"
+	nsMarshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network/marshaller/namingservice"
 )
 
 // NamingService represents a namingService address and its data
@@ -16,8 +18,8 @@ type NamingService struct {
 }
 
 // Register registers a service under the NamingService data
-func (service *NamingService) Register(name, address string, port int) {
-	service.data[name] = fmt.Sprintf("%s:%d", address, port)
+func (service *NamingService) Register(name, address, port string) {
+	service.data[name] = fmt.Sprintf("%s:%s", address, port)
 }
 
 // Unregister removes a service of the NamingService data
@@ -30,24 +32,48 @@ func (service *NamingService) Query(name string) string {
 	return service.data[name]
 }
 
+func (service *NamingService) demuxOperation(req *nsMarshaller.RequestMessage) *string {
+	var res *string
+	switch req.Op {
+	case nsMarshaller.QUERY:
+		temp := service.Query(req.Data)
+		res = &temp
+	case nsMarshaller.REGISTER:
+		fields := strings.Split(req.Data, ":")
+		service.Register(fields[0], fields[1], fields[2])
+	case nsMarshaller.UNREGISTER:
+		service.Unregister(req.Data)
+	}
+	return res
+}
+
 func (service *NamingService) handle(conn *net.Conn) {
-	var res string
+	var data string
+	var result nsMarshaller.Result
 	buffer, err := network.ReadMessage(conn)
 	if err != nil {
 		fmt.Printf("Error on receiving message: %+v\n", err)
-		res = "FAIL/"
-		network.WriteMessage(conn, []byte(res))
+		result = nsMarshaller.ERROR
 	} else {
-		message := string(buffer)
-		fmt.Printf("%s\n", message)
-		res = service.Query(message)
-		if len(res) > 0 {
-			res = fmt.Sprintf("OK/%s", res)
+		msg := nsMarshaller.UnmarshallRequest(buffer)
+		res := service.demuxOperation(msg)
+		if res == nil {
+			result = nsMarshaller.OK
+		}
+		if len(*res) > 0 {
+			data = *res
+			result = nsMarshaller.OK
 		} else {
-			res = "FAIL/"
+			result = nsMarshaller.NOTFOUND
 		}
 	}
-	network.WriteMessage(conn, []byte(res))
+
+	message := &nsMarshaller.ResponseMessage{
+		Res:  result,
+		Data: data,
+	}
+	serialized := nsMarshaller.MarshallResponse(message)
+	network.WriteMessage(conn, serialized)
 }
 
 // Start starts NamingService TCP server
