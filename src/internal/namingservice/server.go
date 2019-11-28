@@ -44,6 +44,7 @@ func (service *NamingService) demuxOperation(req *nsMarshaller.RequestMessage) *
 	case nsMarshaller.UNREGISTER:
 		service.Unregister(req.Data)
 	}
+	fmt.Printf("%+v\n", service.data)
 	return res
 }
 
@@ -59,8 +60,7 @@ func (service *NamingService) handle(conn *net.Conn) {
 		res := service.demuxOperation(msg)
 		if res == nil {
 			result = nsMarshaller.OK
-		}
-		if len(*res) > 0 {
+		} else if len(*res) > 0 {
 			data = *res
 			result = nsMarshaller.OK
 		} else {

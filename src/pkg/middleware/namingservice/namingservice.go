@@ -73,7 +73,7 @@ func (ns *NamingService) Register(serviceName, host string, port int) error {
 // Unregister unregisters a service on the namingService
 func (ns *NamingService) Unregister(serviceName string) error {
 	req := &nsMarshaller.RequestMessage{
-		Op:   nsMarshaller.REGISTER,
+		Op:   nsMarshaller.UNREGISTER,
 		Data: serviceName,
 	}
 	response, err := ns.requestor(req)
