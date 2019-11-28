@@ -18,7 +18,7 @@ var (
 func main() {
 	numArgs := len(os.Args) - 1
 	if numArgs != numCommandLineArgs {
-		fmt.Printf("Wrong number of arguments. Expected 1 (%v) but got %d\n", expectedArgs, numArgs)
+		fmt.Printf("Wrong number of arguments. Expected %d (%v) but got %d\n", numCommandLineArgs, expectedArgs, numArgs)
 		os.Exit(1)
 	}
 
