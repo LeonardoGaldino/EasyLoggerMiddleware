@@ -10,6 +10,7 @@ import (
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/easylogger"
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -45,15 +46,15 @@ func getServiceAddress(serviceName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	conn.Write([]byte(serviceName))
-	buffer := make([]byte, 1024, 1024)
-	read, err := conn.Read(buffer)
+	err = network.WriteMessage(&conn, []byte(serviceName))
 	if err != nil {
 		return "", err
 	}
-
-	res := string(buffer[:read])
+	resBytes, err := network.ReadMessage(&conn)
+	if err != nil {
+		return "", err
+	}
+	res := string(resBytes)
 	fields := strings.Split(res, "/")
 	if fields[0] == "OK" {
 		return fields[1], nil

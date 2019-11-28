@@ -2,10 +2,10 @@ package namingservice
 
 import (
 	"fmt"
-	"io"
 	"net"
 
 	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/namingservice"
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network"
 )
 
 // NamingService represents a namingService address and its data
@@ -16,24 +16,23 @@ type NamingService struct {
 }
 
 func (service *NamingService) handle(conn *net.Conn) {
-	bufferSize := 512
-	buffer := make([]byte, bufferSize, bufferSize)
-
-	messageSize, err := (*conn).Read(buffer)
-	if err != nil && err != io.EOF {
-		panic(err)
-	}
-	message := string(buffer[:messageSize])
-	fmt.Println(message)
-
-	res := service.data[message]
-	if len(res) > 0 {
-		res = fmt.Sprintf("OK/%s", res)
+	var res string
+	buffer, err := network.ReadMessage(conn)
+	if err != nil {
+		fmt.Printf("Error on receiving message: %+v\n", err)
+		res = "FAIL/"
+		network.WriteMessage(conn, []byte(res))
 	} else {
-		res = fmt.Sprintf("FAIL/%s", res)
+		message := string(buffer)
+		fmt.Printf("%s\n", message)
+		res = service.data[message]
+		if len(res) > 0 {
+			res = fmt.Sprintf("OK/%s", res)
+		} else {
+			res = "FAIL/"
+		}
 	}
-	(*conn).Write([]byte(res))
-	(*conn).Close()
+	network.WriteMessage(conn, []byte(res))
 }
 
 // Start starts NamingService TCP server
