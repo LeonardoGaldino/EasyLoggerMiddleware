@@ -31,6 +31,10 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 			} else {
 				fmt.Printf("Error: %+v\n", err)
 			}
+			/*
+			 * TODO: demultiplex using the destination (fields[0]) and the address (addr)
+			 * and send the log content fields[1:] to log service
+			 */
 		}
 	}
 }
