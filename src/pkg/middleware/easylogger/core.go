@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
@@ -45,24 +44,6 @@ func getServiceAddress(serviceName string) (string, error) {
 	return namingService.Query(serviceName)
 }
 
-func logger(conn *redis.Conn) {
-	pubsub := &redis.PubSubConn{Conn: *conn}
-	pubsub.Subscribe("easylogger:logs")
-	for {
-		switch msg := pubsub.Receive().(type) {
-		case redis.Message:
-			data := string(msg.Data)
-			fmt.Printf("Received: %s\n", data)
-			addr, err := getServiceAddress(strings.Split(data, ":")[0])
-			if err == nil {
-				fmt.Printf("%s\n", addr)
-			} else {
-				fmt.Printf("Error: %+v\n", err)
-			}
-		}
-	}
-}
-
 func initConnPool() *redis.Pool {
 	return &redis.Pool{
 		Dial: func() (redis.Conn, error) {
@@ -84,7 +65,7 @@ func InitLogger(loggerConfigsPath string) error {
 	}
 
 	// Adds two more CPUs that this middleware requires to run in max performance
-	runtime.GOMAXPROCS(runtime.NumCPU() + 2)
+	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 
 	configsPath = loggerConfigsPath
 	configs := &easylogger.Configuration{}
@@ -105,7 +86,6 @@ func InitLogger(loggerConfigsPath string) error {
 	}
 
 	fmt.Printf("Redis server on, PING response: %+v\n", string(res.([]uint8)))
-	go logger(&conn)
 	isPackageSetup = true
 	return nil
 }
