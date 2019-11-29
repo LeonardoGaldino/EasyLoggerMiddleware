@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 )
 
@@ -12,6 +13,8 @@ type Persistor struct {
 }
 
 func writeData(data string, file *os.File) {
+	file.Truncate(0)
+	file.Seek(0, 0)
 	bytes := []byte(data)
 	i := 0
 	for i < len(bytes) {
@@ -25,14 +28,14 @@ func writeData(data string, file *os.File) {
 }
 
 func (p *Persistor) getFileHandle() *os.File {
-	file, err := os.Open(p.FileName)
+	file, err := os.OpenFile(p.FileName, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		if os.IsNotExist(err) {
 			file, err = os.Create(p.FileName)
 			if err != nil {
 				panic(err)
 			}
-			writeData("{}", file)
+			writeData("{}\n", file)
 		} else {
 			panic(err)
 		}
@@ -40,21 +43,23 @@ func (p *Persistor) getFileHandle() *os.File {
 	return file
 }
 
-func (p *Persistor) loadFile() map[string]interface{} {
+func (p *Persistor) loadFile() map[int]interface{} {
 	file := p.getFileHandle()
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
-	content := make(map[string]interface{})
+	content := make(map[int]interface{})
 	err := decoder.Decode(&content)
 	if err != nil {
-		panic(err)
+		if err != io.EOF {
+			panic(err)
+		}
 	}
 
 	return content
 }
 
-func (p *Persistor) writeFile(content map[string]interface{}) {
+func (p *Persistor) writeFile(content map[int]interface{}) {
 	file := p.getFileHandle()
 	defer file.Close()
 
@@ -76,7 +81,7 @@ func (p *Persistor) AddEntry(entry interface{}) int {
 	defer func() { p.count++ }()
 	serialized := string(marshalled)
 	content := p.loadFile()
-	content[string(p.count)] = serialized
+	content[p.count] = serialized
 	p.writeFile(content)
 	return p.count
 }
@@ -84,6 +89,6 @@ func (p *Persistor) AddEntry(entry interface{}) int {
 // RemoveEntry is a function for removing an entry of the persistance file from a given id
 func (p *Persistor) RemoveEntry(id int) {
 	content := p.loadFile()
-	delete(content, string(id))
+	delete(content, id)
 	p.writeFile(content)
 }
