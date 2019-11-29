@@ -24,7 +24,6 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 	pubsub := &redis.PubSubConn{Conn: conn}
 	pubsub.Subscribe(core.RedisChannel)
 	for {
-		fmt.Println("Running")
 		switch msg := pubsub.Receive().(type) {
 		case redis.Message:
 			data := string(msg.Data)
