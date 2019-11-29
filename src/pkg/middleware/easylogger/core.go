@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/persistence"
+
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/easylogger"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/utils"
@@ -17,8 +19,12 @@ var (
 	configsPath                         string
 	isPackageSetup                      bool
 	redisServiceAddr, namingServiceAddr *configuration.Address
-	namingService                       *nsAPI.NamingService
-	connPool                            *redis.Pool
+	// RedisChannel where logs goes to
+	RedisChannel    = "easylogger:logs"
+	namingService   *nsAPI.NamingService
+	connPool        *redis.Pool
+	persistenceFile = "easylogger.persistence"
+	persistor       = &persistence.Persistor{FileName: persistenceFile}
 )
 
 // LogLevel represents the how serious a log is
@@ -59,6 +65,19 @@ func initConnPool() *redis.Pool {
 	}
 }
 
+func dispatchPendingLogs() {
+	entries := persistor.GetEntries()
+	conn := connPool.Get()
+	defer conn.Close()
+
+	for id, entry := range entries {
+		utils.KeepRetryingAfter(func() (interface{}, error) {
+			return conn.Do("PUBLISH", RedisChannel, entry)
+		}, time.Second*3)
+		persistor.RemoveEntry(id)
+	}
+}
+
 // InitLogger initializes logger with configuration file
 func InitLogger(loggerConfigsPath string) error {
 	if isPackageSetup {
@@ -85,21 +104,25 @@ func InitLogger(loggerConfigsPath string) error {
 	if err != nil {
 		return err
 	}
-
 	fmt.Printf("Redis server on, PING response: %+v\n", string(res.([]uint8)))
+
+	dispatchPendingLogs()
 	isPackageSetup = true
 	return nil
 }
 
 func log(message, destination, serviceID string, level LogLevel) {
-	conn := connPool.Get()
-	defer conn.Close()
-
 	now := time.Now().Unix()
 	serialized := fmt.Sprintf("%s:%d:%s:%s:%s", destination, now, level.String(), serviceID, message)
 
+	id := persistor.AddEntry(serialized)
+	defer persistor.RemoveEntry(id)
+
+	conn := connPool.Get()
+	defer conn.Close()
+
 	utils.KeepRetryingAfter(func() (interface{}, error) {
-		return conn.Do("PUBLISH", "easylogger:logs", serialized)
+		return conn.Do("PUBLISH", RedisChannel, serialized)
 	}, time.Second*3)
 }
 
