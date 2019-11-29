@@ -8,6 +8,7 @@ import (
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/utils"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
+	core "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/pkg/middleware/easylogger"
 	nsAPI "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/pkg/middleware/namingservice"
 	"github.com/gomodule/redigo/redis"
 )
@@ -21,15 +22,20 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 	namingService := nsAPI.InitNamingServiceFromAddr(namingServiceAddr)
 
 	pubsub := &redis.PubSubConn{Conn: conn}
-	pubsub.Subscribe("easylogger:logs")
+	pubsub.Subscribe(core.RedisChannel)
 	for {
+		fmt.Println("Running")
 		switch msg := pubsub.Receive().(type) {
 		case redis.Message:
 			data := string(msg.Data)
 			fmt.Printf("Received: %s\n", data)
 			fields := strings.Split(data, ":")
 			addr := utils.KeepRetryingAfter(func() (interface{}, error) {
-				return namingService.Query(fields[0])
+				addr, err := namingService.Query(fields[0])
+				if err != nil && strings.Contains(err.Error(), "not found") {
+					return addr, nil
+				}
+				return addr, err
 			}, time.Second)
 			fmt.Printf("%s\n", addr)
 			/*
