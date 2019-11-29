@@ -1,9 +1,9 @@
 package persistence
 
 import (
-	"encoding/json"
-	"io"
 	"os"
+
+	marshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/marshaller/persistence"
 )
 
 // Persistor is a struct designed to persist things to a temporary file to ensure durability
@@ -48,13 +48,9 @@ func (p *Persistor) GetEntries() map[int]string {
 	file := p.getFileHandle()
 	defer file.Close()
 
-	decoder := json.NewDecoder(file)
-	content := make(map[int]string)
-	err := decoder.Decode(&content)
+	content, err := marshaller.UnmarshallEntries(file)
 	if err != nil {
-		if err != io.EOF {
-			panic(err)
-		}
+		panic(err)
 	}
 
 	return content
@@ -64,26 +60,19 @@ func (p *Persistor) writeFile(content map[int]string) {
 	file := p.getFileHandle()
 	defer file.Close()
 
-	bytes, err := json.Marshal(content)
+	serialized, err := marshaller.MarshallEntries(content)
 	if err != nil {
 		panic(err)
 	}
 
-	serialized := string(bytes)
 	writeData(serialized, file)
 }
 
 // AddEntry is a function for adding an entry in the persistance file and returns an id for removal later
 func (p *Persistor) AddEntry(entry string) int {
-	rawIn := json.RawMessage(entry)
-	bytes, err := rawIn.MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
 	defer func() { p.count++ }()
-	serialized := string(bytes)
 	content := p.GetEntries()
-	content[p.count] = serialized
+	content[p.count] = entry
 	p.writeFile(content)
 	return p.count
 }
