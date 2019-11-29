@@ -43,7 +43,8 @@ func (p *Persistor) getFileHandle() *os.File {
 	return file
 }
 
-func (p *Persistor) loadFile() map[int]interface{} {
+// GetEntries returns the content of the persistence file as a map
+func (p *Persistor) GetEntries() map[int]interface{} {
 	file := p.getFileHandle()
 	defer file.Close()
 
@@ -80,7 +81,7 @@ func (p *Persistor) AddEntry(entry interface{}) int {
 	}
 	defer func() { p.count++ }()
 	serialized := string(marshalled)
-	content := p.loadFile()
+	content := p.GetEntries()
 	content[p.count] = serialized
 	p.writeFile(content)
 	return p.count
@@ -88,7 +89,7 @@ func (p *Persistor) AddEntry(entry interface{}) int {
 
 // RemoveEntry is a function for removing an entry of the persistance file from a given id
 func (p *Persistor) RemoveEntry(id int) {
-	content := p.loadFile()
+	content := p.GetEntries()
 	delete(content, id)
 	p.writeFile(content)
 }
