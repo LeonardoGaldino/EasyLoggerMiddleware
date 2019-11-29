@@ -44,12 +44,12 @@ func (p *Persistor) getFileHandle() *os.File {
 }
 
 // GetEntries returns the content of the persistence file as a map
-func (p *Persistor) GetEntries() map[int]interface{} {
+func (p *Persistor) GetEntries() map[int]string {
 	file := p.getFileHandle()
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
-	content := make(map[int]interface{})
+	content := make(map[int]string)
 	err := decoder.Decode(&content)
 	if err != nil {
 		if err != io.EOF {
@@ -60,7 +60,7 @@ func (p *Persistor) GetEntries() map[int]interface{} {
 	return content
 }
 
-func (p *Persistor) writeFile(content map[int]interface{}) {
+func (p *Persistor) writeFile(content map[int]string) {
 	file := p.getFileHandle()
 	defer file.Close()
 
@@ -74,13 +74,14 @@ func (p *Persistor) writeFile(content map[int]interface{}) {
 }
 
 // AddEntry is a function for adding an entry in the persistance file and returns an id for removal later
-func (p *Persistor) AddEntry(entry interface{}) int {
-	marshalled, err := json.Marshal(entry)
+func (p *Persistor) AddEntry(entry string) int {
+	rawIn := json.RawMessage(entry)
+	bytes, err := rawIn.MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
 	defer func() { p.count++ }()
-	serialized := string(marshalled)
+	serialized := string(bytes)
 	content := p.GetEntries()
 	content[p.count] = serialized
 	p.writeFile(content)
