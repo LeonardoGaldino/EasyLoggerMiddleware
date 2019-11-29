@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/persistence"
+
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/utils"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
@@ -13,8 +15,20 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+var (
+	persistFile = "dispatcher.persistence"
+	persistor   = &persistence.Persistor{FileName: persistFile}
+)
+
+func dispatchPendingLogs() {
+	/*
+	 * TODO: Get pending data from persistor, demultiplex entries to destination and send it
+	 */
+}
+
 // StartDispatching subscribe on Redis channel and waits for logs to get them and log it to destination
 func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *configuration.Address) error {
+	dispatchPendingLogs()
 	conn, err := redis.Dial("tcp", redisAddr.FullAddress())
 	if err != nil {
 		return err
@@ -22,12 +36,15 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 	namingService := nsAPI.InitNamingServiceFromAddr(namingServiceAddr)
 	pubsub := &redis.PubSubConn{Conn: conn}
 	pubsub.Subscribe(core.RedisChannel)
+	fmt.Printf("Starting to consume Redis channel: %s\n", core.RedisChannel)
 	for {
 		switch msg := pubsub.Receive().(type) {
 		case redis.Message:
 			data := string(msg.Data)
 			fmt.Printf("Received: %s\n", data)
+			id := persistor.AddEntry(data)
 			fields := strings.Split(data, ":")
+
 			addr := utils.KeepRetryingAfter(func() (interface{}, error) {
 				addr, err := namingService.Query(fields[0])
 				if err != nil && strings.Contains(err.Error(), "not found") {
@@ -40,6 +57,7 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 			 * TODO: demultiplex using the destination (fields[0]) and the address (addr)
 			 * and send the log content fields[1:] to log service
 			 */
+			persistor.RemoveEntry(id)
 		}
 	}
 }
