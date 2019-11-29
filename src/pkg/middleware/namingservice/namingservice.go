@@ -6,8 +6,8 @@ import (
 	"net"
 
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration"
+	nsMarshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/marshaller/namingservice"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network"
-	nsMarshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network/marshaller/namingservice"
 )
 
 // NamingService is a struct for reaching the NamingService with easy API

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	nsconfigs "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/configuration/namingservice"
+	nsMarshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/marshaller/namingservice"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network"
-	nsMarshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/network/marshaller/namingservice"
 )
 
 // NamingService represents a namingService address and its data
