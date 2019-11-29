@@ -66,16 +66,9 @@ func initConnPool() *redis.Pool {
 }
 
 func dispatchPendingLogs() {
-	entries := persistor.GetEntries()
 	conn := connPool.Get()
 	defer conn.Close()
-
-	for id, entry := range entries {
-		utils.KeepRetryingAfter(func() (interface{}, error) {
-			return conn.Do("PUBLISH", RedisChannel, entry)
-		}, time.Second*3)
-		persistor.RemoveEntry(id)
-	}
+	persistor.PublishEntriesToRedis(conn, RedisChannel)
 }
 
 // InitLogger initializes logger with configuration file

@@ -20,7 +20,6 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 		return err
 	}
 	namingService := nsAPI.InitNamingServiceFromAddr(namingServiceAddr)
-
 	pubsub := &redis.PubSubConn{Conn: conn}
 	pubsub.Subscribe(core.RedisChannel)
 	for {
