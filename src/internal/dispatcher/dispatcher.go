@@ -16,24 +16,21 @@ import (
 )
 
 var (
-	persistFile = "dispatcher.persistence"
-	persistor   = &persistence.Persistor{FileName: persistFile}
+	persistFile     = "dispatcher.persistence"
+	persistor       = &persistence.Persistor{FileName: persistFile}
+	dispatcherDemux = map[string]func(string, string){
+		"ElasticSearch": elasticSearchDispatcher,
+	}
 )
-
-func dispatchPendingLogs() {
-	/*
-	 * TODO: Get pending data from persistor, demultiplex entries to destination and send it
-	 */
-}
 
 // StartDispatching subscribe on Redis channel and waits for logs to get them and log it to destination
 func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *configuration.Address) error {
-	dispatchPendingLogs()
 	conn, err := redis.Dial("tcp", redisAddr.FullAddress())
 	if err != nil {
 		return err
 	}
 	namingService := nsAPI.InitNamingServiceFromAddr(namingServiceAddr)
+	persistor.GenericDispatchEntries(dispatcherDemux, namingService)
 	pubsub := &redis.PubSubConn{Conn: conn}
 	pubsub.Subscribe(core.RedisChannel)
 	fmt.Printf("Starting to consume Redis channel: %s\n", core.RedisChannel)
@@ -52,11 +49,16 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 				}
 				return addr, err
 			}, time.Second)
-			fmt.Printf("%s\n", addr)
-			/*
-			 * TODO: demultiplex using the destination (fields[0]) and the address (addr)
-			 * and send the log content fields[1:] to log service
-			 */
+			fulladdr := fmt.Sprintf("http://%s", addr.(string))
+			fmt.Printf("%s\n", fulladdr)
+
+			//Demux using fields[0]
+			dispatcher := dispatcherDemux[fields[0]]
+			if dispatcher != nil {
+				dispatcher(fulladdr, data)
+			} else {
+				fmt.Printf("No dispatcher for destination: %s\n", fields[0])
+			}
 			persistor.RemoveEntry(id)
 		}
 	}

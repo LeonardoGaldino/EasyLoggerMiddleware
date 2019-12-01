@@ -1,13 +1,15 @@
 package persistence
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	marshaller "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/marshaller/persistence"
 	"github.com/LeonardoGaldino/EasyLoggerMiddleware/src/internal/utils"
-	"github.com/gomodule/redigo/redis"
+	nsAPI "github.com/LeonardoGaldino/EasyLoggerMiddleware/src/pkg/middleware/namingservice"
 )
 
 // Persistor is a struct designed to persist things to a temporary file to ensure durability
@@ -72,18 +74,46 @@ func (p *Persistor) getEntries() map[int]string {
 	return content
 }
 
-// PublishEntriesToRedis processes each entry sending them to Redis
-func (p *Persistor) PublishEntriesToRedis(conn redis.Conn, redisChannel string) {
+// DispatchEntries processes each entry sending them to some destination chosen by dispatcher
+func (p *Persistor) DispatchEntries(dispatcher func(string)) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	entries := p.getEntries()
 
 	for id, entry := range entries {
-		utils.KeepRetryingAfter(func() (interface{}, error) {
-			return conn.Do("PUBLISH", redisChannel, entry)
-		}, time.Second*3)
+		dispatcher(entry)
 		p.removeEntry(id)
 	}
+}
+
+// GenericDispatchEntries processes each entry sending them to some destination chosen by destination using dispatcherDemux
+func (p *Persistor) GenericDispatchEntries(dispatcherDemux map[string]func(string, string), namingService *nsAPI.NamingService) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	entries := p.getEntries()
+	maxID := -1
+	for id, entry := range entries {
+		destination := strings.Split(entry, ":")[0]
+		dispatcher := dispatcherDemux[destination]
+		if dispatcher != nil {
+			addr := utils.KeepRetryingAfter(func() (interface{}, error) {
+				addr, err := namingService.Query(destination)
+				if err != nil && strings.Contains(err.Error(), "not found") {
+					return addr, nil
+				}
+				return addr, err
+			}, time.Second)
+			fulladdr := fmt.Sprintf("http://%s", addr.(string))
+			dispatcher(fulladdr, entry)
+			p.removeEntry(id)
+		} else {
+			if id > maxID {
+				maxID = id
+			}
+			fmt.Printf("No dispatcher for destination: %s\n", destination)
+		}
+	}
+	p.count = maxID + 1
 }
 
 // GetEntries returns the content of the persistence file as a map
