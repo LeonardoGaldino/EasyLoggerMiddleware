@@ -52,7 +52,6 @@ func StartDispatching(redisAddr *configuration.Address, namingServiceAddr *confi
 			fulladdr := fmt.Sprintf("http://%s", addr.(string))
 			fmt.Printf("%s\n", fulladdr)
 
-			//Demux using fields[0]
 			dispatcher := dispatcherDemux[fields[0]]
 			if dispatcher != nil {
 				dispatcher(fulladdr, data)
