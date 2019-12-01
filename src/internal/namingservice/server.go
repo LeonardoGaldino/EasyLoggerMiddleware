@@ -56,6 +56,7 @@ func (service *NamingService) handle(conn *net.Conn) {
 		result = nsMarshaller.ERROR
 	} else {
 		msg := nsMarshaller.UnmarshallRequest(buffer)
+		fmt.Printf("Received %s/%s\n", msg.Op, msg.Data)
 		res := service.demuxOperation(msg)
 		if res == nil {
 			result = nsMarshaller.OK
