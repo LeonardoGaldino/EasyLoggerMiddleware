@@ -40,8 +40,8 @@ func main() {
 		totalElapsed = append(totalElapsed, elapsed)
 	}
 
-	avg, sd, zeroes := utils.ComputeMetrics(totalElapsed)
-	fmt.Printf("From a total of %d calls: [AVG: %.2f μs, SD: %.2f μs, %d zeroed-values]\n", reps, avg, sd, zeroes)
+	avg, sd, zeroes, p90 := utils.ComputeMetrics(totalElapsed)
+	fmt.Printf("From a total of %d calls: [AVG: %.2fμs, SD: %.2fμs, %d zeroed-values, p90: %v]\n", reps, avg, sd, zeroes, p90)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

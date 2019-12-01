@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math"
+	"sort"
 	"time"
 )
 
@@ -18,8 +19,30 @@ func KeepRetryingAfter(f func() (interface{}, error), after time.Duration) inter
 	return v
 }
 
+// SortableDurationSlice is a struct for sorting duration slice
+type SortableDurationSlice struct {
+	Data []time.Duration
+}
+
+// Len returns the size of underlying duration slice
+func (s SortableDurationSlice) Len() int {
+	return len(s.Data)
+}
+
+// Less returns a boolean indicating if element at i is less then element at j
+func (s SortableDurationSlice) Less(i, j int) bool {
+	return (s.Data[i]) < (s.Data[j])
+}
+
+// Swap swaps two element in the underlying slice
+func (s SortableDurationSlice) Swap(i, j int) {
+	temp := s.Data[i]
+	s.Data[i] = s.Data[j]
+	s.Data[j] = temp
+}
+
 // ComputeMetrics computes avg and standard deviation for a set of durations (microseconds)
-func ComputeMetrics(delays []time.Duration) (float64, float64, int) {
+func ComputeMetrics(delays []time.Duration) (float64, float64, int, time.Duration) {
 	var totalNanoSecs int64
 	len := float64(len(delays))
 	zeroValues := 0
@@ -38,5 +61,9 @@ func ComputeMetrics(delays []time.Duration) (float64, float64, int) {
 	}
 	sd = sd / (len - 1 - float64(zeroValues))
 	sd = math.Sqrt(sd)
-	return avgNanoSecs / 1000, sd / 1000, zeroValues
+
+	sortable := SortableDurationSlice{Data: delays}
+	sort.Sort(sortable)
+	var p90index = int(math.Floor(0.90 * float64(sortable.Len())))
+	return avgNanoSecs / 1000, sd / 1000, zeroValues, sortable.Data[p90index]
 }
