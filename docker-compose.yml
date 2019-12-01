@@ -26,7 +26,18 @@ services:
       - SERVER_HOST=0.0.0.0
     ports:
       - "5601:5601"
+  
+  redis:
+    image: 'redis:4.0.9'
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata1:/data
 
 volumes:
   esdata1:
+    driver: local
+  redisdata1:
     driver: local
